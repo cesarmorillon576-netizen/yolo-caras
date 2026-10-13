@@ -1,0 +1,200 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Galería">
+  <div class="encabezado">
+    <h1>Galería</h1>
+    <span id="total" class="sticker" hidden></span>
+  </div>
+  <p id="estado" class="estado mono">Cargando fotos...</p>
+  <div id="grid" class="grid"></div>
+</Layout>
+
+<style>
+  .encabezado {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .encabezado h1 {
+    animation: subir 0.7s var(--suave) both;
+  }
+
+  .encabezado .sticker {
+    --giro: -4deg;
+    animation: pop 0.5s var(--rebote) 0.4s both;
+  }
+
+  .estado {
+    display: inline-block;
+    padding: 0.6rem 0.9rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    box-shadow: 4px 4px 0 var(--tinta);
+    animation: subir 0.5s var(--suave) 0.15s both;
+  }
+
+  .estado.vacio {
+    background: var(--lima);
+    font-size: 1rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1.75rem 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .grid :global(.foto) {
+    position: relative;
+    display: block;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    box-shadow: var(--sombra);
+    overflow: visible;
+    transform: rotate(var(--giro));
+    animation: subir 0.6s var(--suave) both;
+    animation-delay: calc(var(--i) * 70ms);
+    transition: transform 0.3s var(--rebote), box-shadow 0.3s var(--suave);
+  }
+
+  .grid :global(.foto:hover) {
+    transform: rotate(0deg) translate(-4px, -4px) scale(1.02);
+    box-shadow: var(--sombra-grande);
+    z-index: 2;
+  }
+
+  .grid :global(.foto:active) {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--tinta);
+  }
+
+  .grid :global(.marco) {
+    overflow: hidden;
+    border-bottom: var(--borde);
+    background: var(--tinta);
+  }
+
+  .grid :global(img) {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    transition: transform 0.5s var(--suave);
+  }
+
+  .grid :global(.foto:hover img) {
+    transform: scale(1.06);
+  }
+
+  .grid :global(.sticker) {
+    position: absolute;
+    top: -12px;
+    right: -10px;
+    --giro: 6deg;
+    transform: rotate(var(--giro));
+    transition: transform 0.3s var(--rebote);
+  }
+
+  .grid :global(.foto:hover .sticker) {
+    transform: rotate(-3deg) scale(1.1);
+  }
+
+  .grid :global(.sticker.cero) {
+    background: var(--hueso);
+  }
+
+  .grid :global(.pie) {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  @media (min-width: 700px) {
+    .grid {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+  }
+
+  .grid :global(.pie strong) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .grid :global(.pie span) {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    opacity: 0.7;
+  }
+</style>
+
+<script>
+  import type { PhotoDoc } from "../../../backend/src/types/types.ts";
+
+  type Foto = PhotoDoc & { _id: string };
+
+  const giros = ["-1.5deg", "1deg", "-0.5deg", "1.5deg", "-1deg", "0.5deg"];
+
+  async function iniciar() {
+    const grid = document.getElementById("grid") as HTMLDivElement | null;
+    if (!grid) return;
+
+    const estado = document.getElementById("estado") as HTMLParagraphElement;
+    const total = document.getElementById("total") as HTMLSpanElement;
+
+    try {
+      const respuesta = await fetch("/api/photos");
+      if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+
+      const fotos: Foto[] = await respuesta.json();
+
+      if (fotos.length === 0) {
+        estado.classList.add("vacio");
+        estado.innerHTML = `Todavía no hay fotos. <a href="/"><u>Sube la primera</u></a>.`;
+        return;
+      }
+
+      estado.remove();
+      total.hidden = false;
+      total.textContent = `${fotos.length} ${fotos.length === 1 ? "foto" : "fotos"}`;
+
+      fotos.forEach((foto, i) => {
+        const n = foto.detections.length;
+        const fecha = new Date(foto.createdAt).toLocaleDateString("es-MX", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const enlace = document.createElement("a");
+        enlace.className = "foto";
+        enlace.href = `/detalle?id=${foto._id}`;
+        enlace.style.setProperty("--i", String(i));
+        enlace.style.setProperty("--giro", giros[i % giros.length]!);
+        enlace.innerHTML = `
+          <div class="marco">
+            <img src="/uploads/${foto.filename}" alt="${foto.originalName}" loading="lazy" />
+          </div>
+          <span class="sticker ${n === 0 ? "cero" : ""}">${n} ${n === 1 ? "cara" : "caras"}</span>
+          <div class="pie">
+            <strong title="${foto.originalName}">${foto.originalName}</strong>
+            <span>${foto.width}×${foto.height} · ${fecha}</span>
+          </div>
+        `;
+        grid.append(enlace);
+      });
+    } catch (err) {
+      estado.classList.add("error");
+      estado.textContent = err instanceof Error ? err.message : "No se pudo cargar la galería";
+    }
+  }
+
+  iniciar();
+</script>

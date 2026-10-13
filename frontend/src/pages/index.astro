@@ -1,11 +1,398 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Subir foto">
+  <section class="hero">
+    <h1>
+      <span class="linea">Encuentra las</span>
+      <span class="linea">
+        <span class="objetivo">
+          caras
+          <span class="esquina e1"></span>
+          <span class="esquina e2"></span>
+          <span class="esquina e3"></span>
+          <span class="esquina e4"></span>
+          <span class="etiqueta">face 99%</span>
+        </span>
+        <span class="linea-resto">en tu foto.</span>
+      </span>
+    </h1>
+  </section>
+
+  <form id="formulario" class="tarjeta formulario entra">
+    <label class="zona" for="archivo" id="zona">
+      <input id="archivo" name="photo" type="file" accept="image/*" required />
+      <div class="vacio" id="vacio">
+        <span class="icono">+</span>
+        <strong>Arrastra una foto aquí</strong>
+        <span>o haz clic para elegirla</span>
+      </div>
+      <img id="previa" class="previa" alt="" hidden />
+      <div class="escaner" id="escaner" hidden>
+        <span class="esquina e1"></span>
+        <span class="esquina e2"></span>
+        <span class="esquina e3"></span>
+        <span class="esquina e4"></span>
+        <span class="cazador" id="cazador"><span class="cazador-tag">buscando...</span></span>
+      </div>
+    </label>
+
+    <div class="pie">
+      <span id="nombre" class="mono nombre">Ninguna foto elegida</span>
+      <button id="boton" class="boton" type="submit">Detectar caras</button>
+    </div>
+  </form>
+
+  <p id="estado" class="estado mono" aria-live="polite" hidden></p>
 </Layout>
+
+<style>
+  .hero {
+    margin-bottom: 2.5rem;
+  }
+
+  h1 .linea {
+    display: block;
+    animation: subir 0.7s var(--suave) both;
+  }
+
+  h1 .linea + .linea {
+    margin-top: 0.12em;
+    animation-delay: 0.1s;
+  }
+
+  .objetivo {
+    position: relative;
+    display: inline-block;
+    padding: 0 0.15em;
+    color: var(--coral);
+    -webkit-text-stroke: 2px var(--tinta);
+    paint-order: stroke fill;
+  }
+
+  .esquina {
+    position: absolute;
+    width: 0.3em;
+    height: 0.3em;
+    border: 4px solid var(--tinta);
+    opacity: 0;
+    animation: aparecer 0.3s var(--rebote) 0.9s both;
+  }
+
+  .e1 { top: -0.08em; left: -0.1em; border-right: 0; border-bottom: 0; }
+  .e2 { top: -0.08em; right: -0.1em; border-left: 0; border-bottom: 0; animation-delay: 1s; }
+  .e3 { bottom: -0.02em; left: -0.1em; border-right: 0; border-top: 0; animation-delay: 1.1s; }
+  .e4 { bottom: -0.02em; right: -0.1em; border-left: 0; border-top: 0; animation-delay: 1.2s; }
+
+  .etiqueta {
+    position: absolute;
+    top: -0.78em;
+    right: -0.9em;
+    padding: 0.1em 0.35em;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--lima);
+    color: var(--tinta);
+    -webkit-text-stroke: 0;
+    font-family: var(--mono);
+    font-size: 0.22em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+    box-shadow: 3px 3px 0 var(--tinta);
+    --giro: 6deg;
+    animation: pop 0.5s var(--rebote) 1.35s both;
+  }
+
+  .linea-resto {
+    margin-left: 0.3em;
+  }
+
+  .formulario {
+    padding: 1rem;
+    animation-delay: 0.4s;
+  }
+
+  .zona {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 280px;
+    border: 3px dashed var(--tinta);
+    border-radius: var(--radio);
+    background: var(--cielo);
+    cursor: pointer;
+    overflow: hidden;
+    transition: background 0.25s, transform 0.25s var(--rebote);
+  }
+
+  .zona:hover {
+    background: #9ad6ff;
+  }
+
+  .zona.arrastrando {
+    background: var(--lima);
+    border-style: solid;
+    transform: scale(1.01) rotate(-0.5deg);
+  }
+
+  .zona.con-foto {
+    border-style: solid;
+    background: var(--tinta);
+  }
+
+  input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .vacio {
+    display: grid;
+    justify-items: center;
+    gap: 0.2rem;
+    text-align: center;
+    transition: opacity 0.2s;
+  }
+
+  .icono {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.5rem;
+    border: var(--borde);
+    border-radius: 50%;
+    background: var(--hueso);
+    font-family: var(--display);
+    font-size: 2rem;
+    line-height: 1;
+    box-shadow: 3px 3px 0 var(--tinta);
+    transition: transform 0.3s var(--rebote);
+  }
+
+  .zona:hover .icono {
+    transform: rotate(90deg) scale(1.1);
+  }
+
+  .vacio strong {
+    font-size: 1.15rem;
+  }
+
+  .previa {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: revelar 0.5s var(--suave) both;
+  }
+
+  .escaner {
+    position: absolute;
+    inset: 12px;
+    pointer-events: none;
+  }
+
+  .escaner .esquina {
+    width: 28px;
+    height: 28px;
+    border-color: var(--lima);
+    border-width: 5px;
+    opacity: 1;
+    animation: latir 1.2s ease-in-out infinite;
+  }
+
+  .escaner .e1 { top: 0; left: 0; }
+  .escaner .e2 { top: 0; right: 0; animation-delay: 0.15s; }
+  .escaner .e3 { bottom: 0; left: 0; animation-delay: 0.3s; }
+  .escaner .e4 { bottom: 0; right: 0; animation-delay: 0.45s; }
+
+  .cazador {
+    position: absolute;
+    left: var(--x, 30%);
+    top: var(--y, 20%);
+    width: var(--w, 30%);
+    height: var(--h, 40%);
+    border: 4px solid var(--lima);
+    box-shadow: 0 0 0 2px var(--tinta), inset 0 0 0 2px var(--tinta);
+    transition: left 0.45s var(--rebote), top 0.45s var(--rebote), width 0.45s var(--rebote), height 0.45s var(--rebote);
+  }
+
+  .cazador-tag {
+    position: absolute;
+    top: -1.9rem;
+    left: -4px;
+    padding: 0.15rem 0.5rem;
+    border: 2px solid var(--tinta);
+    background: var(--lima);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    animation: parpadear 0.9s steps(2, end) infinite;
+  }
+
+  .pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+  }
+
+  .nombre {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 50%;
+  }
+
+  .estado {
+    display: inline-block;
+    margin-top: 1.25rem;
+    padding: 0.6rem 0.9rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    box-shadow: 4px 4px 0 var(--tinta);
+    animation: pop 0.4s var(--rebote) both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: scale(0.3); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes revelar {
+    from { opacity: 0; transform: scale(1.05); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes latir {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+  }
+
+  @keyframes parpadear {
+    50% { opacity: 0.35; }
+  }
+
+  @media (max-width: 600px) {
+    .nombre {
+      max-width: 100%;
+    }
+
+    .pie .boton {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  function iniciar() {
+    const formulario = document.getElementById("formulario") as HTMLFormElement | null;
+    if (!formulario) return;
+
+    const zona = document.getElementById("zona") as HTMLLabelElement;
+    const archivo = document.getElementById("archivo") as HTMLInputElement;
+    const vacio = document.getElementById("vacio") as HTMLDivElement;
+    const previa = document.getElementById("previa") as HTMLImageElement;
+    const escaner = document.getElementById("escaner") as HTMLDivElement;
+    const cazador = document.getElementById("cazador") as HTMLSpanElement;
+    const nombre = document.getElementById("nombre") as HTMLSpanElement;
+    let cazando: number | undefined;
+
+    function saltar() {
+      const w = 18 + Math.random() * 30;
+      const h = 25 + Math.random() * 40;
+      cazador.style.setProperty("--w", `${w}%`);
+      cazador.style.setProperty("--h", `${h}%`);
+      cazador.style.setProperty("--x", `${Math.random() * (100 - w)}%`);
+      cazador.style.setProperty("--y", `${8 + Math.random() * (92 - h)}%`);
+    }
+
+    function empezarCaza() {
+      saltar();
+      cazando = window.setInterval(saltar, 550);
+    }
+
+    function pararCaza() {
+      window.clearInterval(cazando);
+    }
+    const boton = document.getElementById("boton") as HTMLButtonElement;
+    const estado = document.getElementById("estado") as HTMLParagraphElement;
+
+    function mostrarPrevia() {
+      const f = archivo.files?.[0];
+      if (!f) return;
+      nombre.textContent = f.name;
+      previa.src = URL.createObjectURL(f);
+      previa.hidden = false;
+      vacio.hidden = true;
+      zona.classList.add("con-foto");
+      estado.hidden = true;
+    }
+
+    archivo.addEventListener("change", mostrarPrevia);
+
+    zona.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      zona.classList.add("arrastrando");
+    });
+
+    zona.addEventListener("dragleave", () => zona.classList.remove("arrastrando"));
+
+    zona.addEventListener("drop", (e) => {
+      e.preventDefault();
+      zona.classList.remove("arrastrando");
+      const f = e.dataTransfer?.files?.[0];
+      if (!f || !f.type.startsWith("image/")) return;
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      archivo.files = dt.files;
+      mostrarPrevia();
+    });
+
+    formulario.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      boton.disabled = true;
+      boton.textContent = "Buscando caras...";
+      escaner.hidden = false;
+      empezarCaza();
+      estado.hidden = true;
+      estado.classList.remove("error");
+
+      try {
+        const respuesta = await fetch("/api/photos", {
+          method: "POST",
+          body: new FormData(formulario),
+        });
+
+        if (!respuesta.ok) {
+          const cuerpo = await respuesta.json().catch(() => ({}));
+          throw new Error(cuerpo.error ?? `Error ${respuesta.status}`);
+        }
+
+        const foto = await respuesta.json();
+        const n = foto.detections.length;
+        boton.textContent = n === 0 ? "Sin caras, abriendo..." : `${n} ${n === 1 ? "cara" : "caras"}, abriendo...`;
+        window.location.href = `/detalle?id=${foto._id}`;
+      } catch (err) {
+        pararCaza();
+        escaner.hidden = true;
+        estado.hidden = false;
+        estado.classList.add("error");
+        estado.textContent = err instanceof Error ? err.message : "Algo salió mal, intenta de nuevo";
+        boton.disabled = false;
+        boton.textContent = "Detectar caras";
+      }
+    });
+  }
+
+  iniciar();
+</script>

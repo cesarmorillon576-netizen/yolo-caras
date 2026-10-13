@@ -1,23 +1,342 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const actual = Astro.url.pathname.replace(/\.html$/, "").replace(/\/$/, "") || "/";
+---
+
 <!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title} · Caras</title>
+    <script is:inline>
+      if (document.referrer.startsWith(location.origin)) {
+        document.documentElement.classList.add("navegado");
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <a href="/" class="logo">
+        <span class="logo-caja">CARAS</span>
+        <span class="logo-tag">yolo v8</span>
+      </a>
+      <nav>
+        <a href="/" class:list={["tab", { activo: actual === "/" }]}>Subir</a>
+        <a href="/galeria" class:list={["tab", { activo: actual === "/galeria" }]}>Galería</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+  </body>
 </html>
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
+<style is:global>
+  :root {
+    --tinta: #141414;
+    --fondo: #d9d4ff;
+    --hueso: #fbf7ef;
+    --coral: #ff5e3a;
+    --lima: #c6f24b;
+    --cielo: #7cc8ff;
+    --sombra: 6px 6px 0 var(--tinta);
+    --sombra-grande: 10px 10px 0 var(--tinta);
+    --borde: 3px solid var(--tinta);
+    --radio: 4px;
+    --display: "Bricolage Grotesque", "Arial Black", sans-serif;
+    --cuerpo: "Space Grotesk", system-ui, sans-serif;
+    --mono: "Space Mono", ui-monospace, monospace;
+    --suave: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --rebote: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+  }
+
+  body {
+    background-color: var(--fondo);
+    background-image:
+      linear-gradient(rgba(20, 20, 20, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20, 20, 20, 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+    animation: deriva 90s linear infinite;
+    color: var(--tinta);
+    font-family: var(--cuerpo);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  ::selection {
+    background: var(--lima);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--coral);
+    outline-offset: 3px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: var(--borde);
+    background: var(--hueso);
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    animation: caer 0.6s var(--rebote) both;
+  }
+
+  .logo-caja {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--coral);
+    box-shadow: 4px 4px 0 var(--tinta);
+    font-family: var(--display);
+    font-size: 1.35rem;
+    letter-spacing: 0.04em;
+    transform: rotate(-2deg);
+    transition: transform 0.25s var(--rebote), box-shadow 0.25s var(--suave);
+  }
+
+  .logo:hover .logo-caja {
+    transform: rotate(2deg) translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--tinta);
+  }
+
+  .logo-tag {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-bottom: 0.2rem;
+  }
+
+  nav {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .tab {
+    position: relative;
+    padding: 0.45rem 1rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    font-weight: 700;
+    box-shadow: 3px 3px 0 var(--tinta);
+    transition: transform 0.2s var(--suave), box-shadow 0.2s var(--suave), background 0.2s;
+    animation: caer 0.6s var(--rebote) both;
+  }
+
+  .tab:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .tab:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--tinta);
+  }
+
+  .tab:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--tinta);
+  }
+
+  .tab.activo {
+    background: var(--lima);
+  }
+
+  .navegado .logo,
+  .navegado .tab {
+    animation: none;
+  }
+
+  main {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  h1 {
+    margin: 0 0 1.5rem;
+    font-family: var(--display);
+    font-size: clamp(2.4rem, 7vw, 4.8rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+  }
+
+  .mono {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+  }
+
+  .tarjeta {
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    box-shadow: var(--sombra);
+  }
+
+  .boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.5rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--coral);
+    color: var(--tinta);
+    font-family: var(--cuerpo);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--sombra);
+    transition: transform 0.2s var(--suave), box-shadow 0.2s var(--suave), background 0.2s, opacity 0.2s;
+  }
+
+  .boton:hover:not(:disabled) {
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--tinta);
+  }
+
+  .boton:active:not(:disabled) {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 var(--tinta);
+  }
+
+  .boton:disabled {
+    cursor: wait;
+    background: var(--hueso);
+  }
+
+  .sticker {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--lima);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    box-shadow: 3px 3px 0 var(--tinta);
+  }
+
+  .error {
+    background: var(--coral);
+  }
+
+  .entra {
+    animation: subir 0.6s var(--suave) both;
+  }
+
+  @keyframes deriva {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 320px 320px;
+    }
+  }
+
+  @keyframes caer {
+    from {
+      opacity: 0;
+      transform: translateY(-18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes subir {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.4) rotate(-12deg);
+      opacity: 0;
+    }
+    70% {
+      transform: scale(1.12) rotate(4deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) rotate(var(--giro, 0deg));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media (max-width: 600px) {
+    header {
+      padding: 1rem;
+    }
+
+    .logo-tag {
+      display: none;
+    }
+
+    main {
+      padding: 2rem 1rem 4rem;
+    }
+  }
 </style>

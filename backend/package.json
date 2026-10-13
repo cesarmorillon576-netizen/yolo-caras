@@ -4,9 +4,19 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.3.0"
   },
   "peerDependencies": {
     "typescript": "^7"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.11.1",
+    "multer": "^2.4.0"
+  },
+  "scripts": {
+    "dev": "bun --watch src/server.ts"
   }
 }

@@ -1,0 +1,324 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Detalle">
+  <a href="/galeria" class="volver tab">← Galería</a>
+
+  <div class="encabezado">
+    <h1 id="titulo">Cargando...</h1>
+    <div id="chips" class="chips"></div>
+  </div>
+
+  <div class="marco tarjeta entra" id="marco">
+    <canvas id="lienzo"></canvas>
+  </div>
+
+  <div class="acciones" id="acciones" hidden>
+    <ol id="lista" class="lista"></ol>
+    <button id="descargar" class="boton" type="button">Descargar</button>
+  </div>
+</Layout>
+
+<style>
+  .volver {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    animation: subir 0.5s var(--suave) both;
+  }
+
+  .encabezado {
+    margin-bottom: 1.5rem;
+  }
+
+  .encabezado h1 {
+    margin-bottom: 0.9rem;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    word-break: break-all;
+    animation: subir 0.6s var(--suave) 0.05s both;
+  }
+
+  .encabezado h1.error {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+  }
+
+  .chips {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .chips :global(.sticker) {
+    background: var(--hueso);
+    text-transform: none;
+    letter-spacing: 0;
+    animation: pop 0.45s var(--rebote) both;
+    animation-delay: calc(var(--i) * 90ms + 0.2s);
+  }
+
+  .chips :global(.sticker.destacado) {
+    background: var(--lima);
+  }
+
+  .marco {
+    padding: 10px;
+    background: var(--tinta);
+    animation-delay: 0.2s;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--tinta);
+  }
+
+  .marco.vacio {
+    display: none;
+  }
+
+  .acciones {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+
+  .acciones .boton {
+    --giro: 0deg;
+    animation: pop 0.5s var(--rebote) 0.7s both;
+  }
+
+  .lista {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .lista :global(li) {
+    padding: 0.4rem 0.7rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    box-shadow: 3px 3px 0 var(--tinta);
+    animation: subir 0.4s var(--suave) both;
+    animation-delay: calc(var(--i) * 120ms + 0.5s);
+    transition: transform 0.2s var(--rebote), background 0.2s;
+  }
+
+  .lista :global(li:hover) {
+    background: var(--coral);
+    transform: translate(-2px, -2px) rotate(-1deg);
+  }
+
+  .lista :global(li b) {
+    color: var(--coral);
+  }
+
+  .lista :global(li:hover b) {
+    color: var(--tinta);
+  }
+</style>
+
+<script>
+  import type { Detection, PhotoDoc } from "../../../backend/src/types/types.ts";
+
+  type Foto = PhotoDoc & { _id: string };
+
+  function cargarImagen(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("No se pudo cargar la imagen"));
+      img.src = src;
+    });
+  }
+
+  function suavizar(t: number) {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+
+  function pintarCaja(ctx: CanvasRenderingContext2D, det: Detection, p: number, grosor: number, fuente: number, modo: "normal" | "foco" | "fondo" = "normal") {
+    const { x, y, width, height } = det.box;
+    const colorCaja = modo === "foco" ? "#ff5e3a" : "#c6f24b";
+    const colorEtiqueta = modo === "foco" ? "#c6f24b" : "#ff5e3a";
+    ctx.globalAlpha = modo === "fondo" ? 0.35 : 1;
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const w = width * p;
+    const h = height * p;
+    const bx = cx - w / 2;
+    const by = cy - h / 2;
+
+    ctx.lineWidth = grosor;
+    ctx.strokeStyle = "#141414";
+    ctx.strokeRect(bx + grosor, by + grosor, w, h);
+    ctx.strokeStyle = colorCaja;
+    ctx.strokeRect(bx, by, w, h);
+
+    if (p < 0.98) {
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    const etiqueta = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+    ctx.font = `700 ${fuente}px "Space Mono", monospace`;
+    ctx.textBaseline = "top";
+    const anchoTexto = ctx.measureText(etiqueta).width + fuente * 0.8;
+    const altoTexto = fuente * 1.5;
+    const ty = y - altoTexto - grosor >= 0 ? y - altoTexto - grosor : y + grosor;
+
+    ctx.fillStyle = "#141414";
+    ctx.fillRect(x + grosor, ty + grosor, anchoTexto, altoTexto);
+    ctx.fillStyle = colorEtiqueta;
+    ctx.fillRect(x, ty, anchoTexto, altoTexto);
+    ctx.lineWidth = Math.max(2, grosor * 0.6);
+    ctx.strokeStyle = "#141414";
+    ctx.strokeRect(x, ty, anchoTexto, altoTexto);
+    ctx.fillStyle = "#141414";
+    ctx.fillText(etiqueta, x + fuente * 0.4, ty + fuente * 0.25);
+    ctx.globalAlpha = 1;
+  }
+
+  type Escena = { lienzo: HTMLCanvasElement; foto: Foto; img: HTMLImageElement; grosor: number; fuente: number };
+
+  function pintarTodo(e: Escena, foco: number | null) {
+    const ctx = e.lienzo.getContext("2d")!;
+    ctx.drawImage(e.img, 0, 0, e.foto.width, e.foto.height);
+    e.foto.detections.forEach((det, i) => {
+      const modo = foco === null ? "normal" : i === foco ? "foco" : "fondo";
+      if (modo !== "foco") pintarCaja(ctx, det, 1, e.grosor, e.fuente, modo);
+    });
+    if (foco !== null) {
+      const det = e.foto.detections[foco];
+      if (det) pintarCaja(ctx, det, 1, e.grosor, e.fuente, "foco");
+    }
+  }
+
+  function animarCajas(lienzo: HTMLCanvasElement, foto: Foto, img: HTMLImageElement): Escena {
+    lienzo.width = foto.width;
+    lienzo.height = foto.height;
+    const ctx = lienzo.getContext("2d")!;
+
+    const grosor = Math.max(3, Math.round(foto.width / 220));
+    const fuente = Math.max(14, Math.round(foto.width / 36));
+    const escena: Escena = { lienzo, foto, img, grosor, fuente };
+    const duracion = 520;
+    const escalon = 140;
+    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const inicio = performance.now();
+
+    function cuadro(ahora: number) {
+      const t = ahora - inicio;
+      ctx.drawImage(img, 0, 0, foto.width, foto.height);
+
+      let terminado = true;
+      foto.detections.forEach((det, i) => {
+        const local = reducido ? 1 : Math.min(1, Math.max(0, (t - i * escalon) / duracion));
+        if (local < 1) terminado = false;
+        if (local > 0) pintarCaja(ctx, det, suavizar(local), grosor, fuente);
+      });
+
+      if (!terminado) requestAnimationFrame(cuadro);
+    }
+
+    requestAnimationFrame(cuadro);
+    return escena;
+  }
+
+  function chip(texto: string, i: number, destacado = false) {
+    const s = document.createElement("span");
+    s.className = `sticker${destacado ? " destacado" : ""}`;
+    s.style.setProperty("--i", String(i));
+    s.textContent = texto;
+    return s;
+  }
+
+  async function iniciar() {
+    const lienzo = document.getElementById("lienzo") as HTMLCanvasElement | null;
+    if (!lienzo) return;
+
+    const titulo = document.getElementById("titulo") as HTMLHeadingElement;
+    const chips = document.getElementById("chips") as HTMLDivElement;
+    const marco = document.getElementById("marco") as HTMLDivElement;
+    const lista = document.getElementById("lista") as HTMLOListElement;
+    const acciones = document.getElementById("acciones") as HTMLDivElement;
+    const descargar = document.getElementById("descargar") as HTMLButtonElement;
+
+    function fallar(mensaje: string) {
+      titulo.textContent = mensaje;
+      titulo.classList.add("error");
+      marco.classList.add("vacio");
+    }
+
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (!id) {
+      fallar("Falta el id de la foto");
+      return;
+    }
+
+    try {
+      const respuesta = await fetch(`/api/photos/${id}`);
+      if (respuesta.status === 404) throw new Error("Esa foto no existe");
+      if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+
+      const foto: Foto = await respuesta.json();
+      const [img] = await Promise.all([
+        cargarImagen(`/uploads/${foto.filename}`),
+        document.fonts.load('700 16px "Space Mono"').catch(() => undefined),
+      ]);
+
+      const n = foto.detections.length;
+      titulo.textContent = foto.originalName;
+      chips.append(
+        chip(n === 0 ? "sin caras" : `${n} ${n === 1 ? "cara" : "caras"}`, 0, n > 0),
+        chip(`${foto.width}×${foto.height} px`, 1),
+        chip(`${(foto.size / 1024).toFixed(0)} KB`, 2),
+        chip(new Date(foto.createdAt).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }), 3),
+      );
+
+      const escena = animarCajas(lienzo, foto, img);
+      acciones.hidden = false;
+
+      descargar.addEventListener("click", () => {
+        pintarTodo(escena, null);
+        const base = foto.originalName.replace(/\.[^.]+$/, "");
+        lienzo.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${base}-caras.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }, "image/png");
+      });
+
+      foto.detections.forEach((det, i) => {
+        const li = document.createElement("li");
+        li.style.setProperty("--i", String(i));
+        li.innerHTML = `#${i + 1} ${det.label} <b>${(det.confidence * 100).toFixed(1)}%</b> · ${det.box.width}×${det.box.height}`;
+        li.addEventListener("mouseenter", () => pintarTodo(escena, i));
+        li.addEventListener("mouseleave", () => pintarTodo(escena, null));
+        lista.append(li);
+      });
+    } catch (err) {
+      fallar(err instanceof Error ? err.message : "Algo salió mal");
+    }
+  }
+
+  iniciar();
+</script>
