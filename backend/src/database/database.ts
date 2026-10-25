@@ -74,7 +74,17 @@ class Database {
     const res = await Photo.findById(id);
     return res;
   }
-  
+
+  async deleteById(id: string) {
+    const res = await Photo.findByIdAndDelete(id);
+    return res;
+  }
+
+  async deleteAll() {
+    const fotos = await Photo.find().select("filename");
+    await Photo.deleteMany({});
+    return fotos;
+  }
 }
 
 export const db = Database.getInstance();

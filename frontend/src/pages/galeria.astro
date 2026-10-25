@@ -6,6 +6,7 @@ import Layout from "../layouts/Layout.astro";
   <div class="encabezado">
     <h1>Galería</h1>
     <span id="total" class="sticker" hidden></span>
+    <button id="borrar-todo" class="boton borrar" type="button" hidden>Borrar todo</button>
   </div>
   <p id="estado" class="estado mono">Cargando fotos...</p>
   <div id="grid" class="grid"></div>
@@ -26,6 +27,23 @@ import Layout from "../layouts/Layout.astro";
   .encabezado .sticker {
     --giro: -4deg;
     animation: pop 0.5s var(--rebote) 0.4s both;
+  }
+
+  .encabezado .borrar {
+    margin-left: auto;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+    background: var(--hueso);
+    animation: pop 0.5s var(--rebote) 0.55s both;
+  }
+
+  .encabezado .borrar:hover:not(:disabled) {
+    background: var(--coral);
+  }
+
+  .encabezado .borrar:disabled {
+    opacity: 0.5;
+    cursor: wait;
   }
 
   .estado {
@@ -137,6 +155,7 @@ import Layout from "../layouts/Layout.astro";
 
 <script>
   import type { PhotoDoc } from "../../../backend/src/types/types.ts";
+  import { confirmar } from "../lib/confirmar";
 
   type Foto = PhotoDoc & { _id: string };
 
@@ -148,6 +167,34 @@ import Layout from "../layouts/Layout.astro";
 
     const estado = document.getElementById("estado") as HTMLParagraphElement;
     const total = document.getElementById("total") as HTMLSpanElement;
+    const borrarTodo = document.getElementById("borrar-todo") as HTMLButtonElement;
+
+    function mostrarVacio() {
+      estado.hidden = false;
+      estado.classList.remove("error");
+      estado.classList.add("vacio");
+      estado.innerHTML = `Todavía no hay fotos. <a href="/"><u>Sube la primera</u></a>.`;
+      total.hidden = true;
+      borrarTodo.hidden = true;
+      grid?.replaceChildren();
+    }
+
+    borrarTodo.addEventListener("click", async () => {
+      if (!(await confirmar())) return;
+
+      borrarTodo.disabled = true;
+      borrarTodo.textContent = "Borrando...";
+      try {
+        const respuesta = await fetch("/api/photos", { method: "DELETE" });
+        if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+        mostrarVacio();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "No se pudieron borrar las fotos");
+      } finally {
+        borrarTodo.disabled = false;
+        borrarTodo.textContent = "Borrar todo";
+      }
+    });
 
     try {
       const respuesta = await fetch("/api/photos");
@@ -156,14 +203,14 @@ import Layout from "../layouts/Layout.astro";
       const fotos: Foto[] = await respuesta.json();
 
       if (fotos.length === 0) {
-        estado.classList.add("vacio");
-        estado.innerHTML = `Todavía no hay fotos. <a href="/"><u>Sube la primera</u></a>.`;
+        mostrarVacio();
         return;
       }
 
-      estado.remove();
+      estado.hidden = true;
       total.hidden = false;
       total.textContent = `${fotos.length} ${fotos.length === 1 ? "foto" : "fotos"}`;
+      borrarTodo.hidden = false;
 
       fotos.forEach((foto, i) => {
         const n = foto.detections.length;

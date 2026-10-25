@@ -41,6 +41,17 @@ const actual = Astro.url.pathname.replace(/\.html$/, "").replace(/\/$/, "") || "
     <main>
       <slot />
     </main>
+
+    <dialog id="confirmar" class="confirmar">
+      <div class="confirmar-caja">
+        <span class="sticker confirmar-sticker">ojo</span>
+        <p class="confirmar-texto">¿Estás seguro de realizar esta acción?</p>
+        <div class="confirmar-botones">
+          <button type="button" class="boton confirmar-no" data-no>Cancelar</button>
+          <button type="button" class="boton" data-si>Sí, borrar</button>
+        </div>
+      </div>
+    </dialog>
   </body>
 </html>
 
@@ -268,6 +279,70 @@ const actual = Astro.url.pathname.replace(/\.html$/, "").replace(/\/$/, "") || "
 
   .entra {
     animation: subir 0.6s var(--suave) both;
+  }
+
+  .confirmar {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    max-width: min(92vw, 420px);
+    width: 100%;
+  }
+
+  .confirmar::backdrop {
+    background: rgba(20, 20, 20, 0.55);
+    animation: aparecer 0.25s ease both;
+  }
+
+  .confirmar[open] .confirmar-caja {
+    animation: pop 0.45s var(--rebote) both;
+  }
+
+  .confirmar-caja {
+    position: relative;
+    padding: 2rem 1.6rem 1.6rem;
+    border: var(--borde);
+    border-radius: var(--radio);
+    background: var(--hueso);
+    box-shadow: var(--sombra-grande);
+    transform: rotate(-1deg);
+  }
+
+  .confirmar-sticker {
+    position: absolute;
+    top: -14px;
+    left: -12px;
+    background: var(--coral);
+    transform: rotate(-8deg);
+  }
+
+  .confirmar-texto {
+    margin: 0 0 1.4rem;
+    font-family: var(--display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--tinta);
+  }
+
+  .confirmar-botones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .confirmar-no {
+    background: var(--hueso);
+  }
+
+  .confirmar-no:hover:not(:disabled) {
+    background: var(--lima);
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @keyframes deriva {

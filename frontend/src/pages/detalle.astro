@@ -16,7 +16,10 @@ import Layout from "../layouts/Layout.astro";
 
   <div class="acciones" id="acciones" hidden>
     <ol id="lista" class="lista"></ol>
-    <button id="descargar" class="boton" type="button">Descargar</button>
+    <div class="botones">
+      <button id="descargar" class="boton" type="button">Descargar</button>
+      <button id="eliminar" class="boton eliminar" type="button">Eliminar</button>
+    </div>
   </div>
 </Layout>
 
@@ -90,9 +93,29 @@ import Layout from "../layouts/Layout.astro";
     margin-top: 1.5rem;
   }
 
+  .botones {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
   .acciones .boton {
     --giro: 0deg;
     animation: pop 0.5s var(--rebote) 0.7s both;
+  }
+
+  .acciones .eliminar {
+    background: var(--hueso);
+    animation-delay: 0.8s;
+  }
+
+  .acciones .eliminar:hover:not(:disabled) {
+    background: var(--coral);
+  }
+
+  .acciones .eliminar:disabled {
+    opacity: 0.5;
+    cursor: wait;
   }
 
   .lista {
@@ -133,6 +156,7 @@ import Layout from "../layouts/Layout.astro";
 
 <script>
   import type { Detection, PhotoDoc } from "../../../backend/src/types/types.ts";
+  import { confirmar } from "../lib/confirmar";
 
   type Foto = PhotoDoc & { _id: string };
 
@@ -143,6 +167,12 @@ import Layout from "../layouts/Layout.astro";
       img.onerror = () => reject(new Error("No se pudo cargar la imagen"));
       img.src = src;
     });
+  }
+
+  const nombres: Record<string, string> = { face: "cara" };
+
+  function nombre(label: string) {
+    return nombres[label] ?? label;
   }
 
   function suavizar(t: number) {
@@ -174,7 +204,7 @@ import Layout from "../layouts/Layout.astro";
       return;
     }
 
-    const etiqueta = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+    const etiqueta = `${nombre(det.label)} ${(det.confidence * 100).toFixed(0)}%`;
     ctx.font = `700 ${fuente}px "Space Mono", monospace`;
     ctx.textBaseline = "top";
     const anchoTexto = ctx.measureText(etiqueta).width + fuente * 0.8;
@@ -257,6 +287,7 @@ import Layout from "../layouts/Layout.astro";
     const lista = document.getElementById("lista") as HTMLOListElement;
     const acciones = document.getElementById("acciones") as HTMLDivElement;
     const descargar = document.getElementById("descargar") as HTMLButtonElement;
+    const eliminar = document.getElementById("eliminar") as HTMLButtonElement;
 
     function fallar(mensaje: string) {
       titulo.textContent = mensaje;
@@ -307,10 +338,26 @@ import Layout from "../layouts/Layout.astro";
         }, "image/png");
       });
 
+      eliminar.addEventListener("click", async () => {
+        if (!(await confirmar())) return;
+
+        eliminar.disabled = true;
+        eliminar.textContent = "Eliminando...";
+        try {
+          const respuesta = await fetch(`/api/photos/${foto._id}`, { method: "DELETE" });
+          if (!respuesta.ok && respuesta.status !== 404) throw new Error(`Error ${respuesta.status}`);
+          window.location.href = "/galeria";
+        } catch (err) {
+          alert(err instanceof Error ? err.message : "No se pudo eliminar la foto");
+          eliminar.disabled = false;
+          eliminar.textContent = "Eliminar";
+        }
+      });
+
       foto.detections.forEach((det, i) => {
         const li = document.createElement("li");
         li.style.setProperty("--i", String(i));
-        li.innerHTML = `#${i + 1} ${det.label} <b>${(det.confidence * 100).toFixed(1)}%</b> · ${det.box.width}×${det.box.height}`;
+        li.innerHTML = `#${i + 1} ${nombre(det.label)} <b>${(det.confidence * 100).toFixed(1)}%</b> · ${det.box.width}×${det.box.height}`;
         li.addEventListener("mouseenter", () => pintarTodo(escena, i));
         li.addEventListener("mouseleave", () => pintarTodo(escena, null));
         lista.append(li);

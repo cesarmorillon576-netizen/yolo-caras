@@ -79,3 +79,42 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: "No se pudo obtener la foto" });
   }
 });
+
+const uploadDir = Bun.env.UPLOAD_DIR ?? "uploads";
+
+async function borrarArchivo(filename: string) {
+  await unlink(path.join(uploadDir, path.basename(filename))).catch(() => {});
+}
+
+router.delete("/", async (_req, res) => {
+  try {
+    const fotos = await db.deleteAll();
+    await Promise.all(fotos.map((foto) => borrarArchivo(foto.filename)));
+    res.json({ deleted: fotos.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudieron borrar las fotos" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  const id = req.params.id;
+
+  if (!mongoose.isValidObjectId(id)) {
+    res.status(404).json({ error: "Foto no encontrada" });
+    return;
+  }
+
+  try {
+    const foto = await db.deleteById(id);
+    if (!foto) {
+      res.status(404).json({ error: "Foto no encontrada" });
+      return;
+    }
+    await borrarArchivo(foto.filename);
+    res.json({ deleted: 1 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo borrar la foto" });
+  }
+});
